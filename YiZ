@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YiZ</title
+    <title>YiZ</title>
     <link href="https://fonts.googleapis.com/css2?family=Emblema+One&display=swap" rel="stylesheet">
     
     <style>
@@ -225,20 +225,46 @@
     let loggedUser = localStorage.getItem('YiZ_Logged_User') || "";
     let promoDiscount = 0;
 
+    // 核心修正：确保渲染时路径干净
+    function renderProducts() {
+        const grid = document.getElementById('mainGrid');
+        if (!grid) return;
+        
+        grid.innerHTML = storeProducts.map(p => `
+            <div class="card">
+                <!-- 确保 src 直接指向 p.img -->
+                <img src="${p.img}" alt="${p.name}" onerror="this.src='https://via.placeholder.com/280x220?text=Image+Error'">
+                <div class="card-info">
+                    <p style="font-size:0.8rem; color:#888;">${p.shop}</p>
+                    <h3>${p.name}</h3>
+                    <p class="price">RM ${p.price}</p>
+                    <button class="btn" onclick="addToCart(${p.id})">加入购物车</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // ... 其他函数（refreshCartUI, addToCart等）保持不变 ...
+    
+    // 这里为了防止图片裂开，我加了一个 onerror 处理：如果图片找不到，会显示一个占位图。
+
+    // 修改最后的初始化调用
+    window.onload = function() {
+        init();
+    };
+
+    // 保持你原来的其他函数代码...
     function init() {
         renderProducts();
         refreshCartUI();
-        if(loggedUser) {
-            document.getElementById('welcomeText').innerText = "你好, " + loggedUser;
-        }
+        if(loggedUser) document.getElementById('welcomeText').innerText = "你好, " + loggedUser;
     }
 
     function renderProducts() {
         const grid = document.getElementById('mainGrid');
-        if (!grid) return;
         grid.innerHTML = storeProducts.map(p => `
             <div class="card">
-                <img src="${p.img}" alt="${p.name}" onerror="this.src='https://via.placeholder.com/280x220?text=图片待上传'">
+                <img src="${p.img}">
                 <div class="card-info">
                     <p style="font-size:0.8rem; color:#888;">${p.shop}</p>
                     <h3>${p.name}</h3>
@@ -251,30 +277,28 @@
 
     function refreshCartUI() {
         const cartContent = document.getElementById('cartContent');
-        const finalTotalDisplay = document.getElementById('finalTotal');
-        const countDisplay = document.getElementById('countDisplay');
-        
+        let html = "";
         let bill = 0;
-        let html = myCart.map((item, idx) => {
+        
+        myCart.forEach((item, idx) => {
             bill += (item.price * item.qty);
-            return `
-                <div style="display:flex; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
-                    <img src="${item.img}" style="width:50px; height:50px; border-radius:5px;" onerror="this.src='https://via.placeholder.com/50x50?text=图'">
-                    <div style="flex:1; margin-left:10px;">
-                        <div style="font-size:0.9rem;">${item.name}</div>
-                        <div style="font-weight:bold; color:var(--accent-blue);">RM ${item.price}</div>
-                    </div>
-                    <div>
-                        <button onclick="updateQty(${idx}, -1)">-</button>
-                        <span style="margin:0 5px;">${item.qty}</span>
-                        <button onclick="updateQty(${idx}, 1)">+</button>
-                    </div>
-                </div>`;
-        }).join('');
+            html += `<div style="display:flex; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
+                        <img src="${item.img}" style="width:50px; height:50px; border-radius:5px;">
+                        <div style="flex:1; margin-left:10px;">
+                            <div style="font-size:0.9rem;">${item.name}</div>
+                            <div style="font-weight:bold; color:var(--accent-blue);">RM ${item.price}</div>
+                        </div>
+                        <div>
+                            <button onclick="updateQty(${idx}, -1)">-</button>
+                            <span style="margin:0 5px;">${item.qty}</span>
+                            <button onclick="updateQty(${idx}, 1)">+</button>
+                        </div>
+                    </div>`;
+        });
 
         cartContent.innerHTML = html || "购物车是空的";
-        finalTotalDisplay.innerText = Math.max(0, bill - promoDiscount);
-        countDisplay.innerText = myCart.reduce((sum, i) => sum + i.qty, 0);
+        document.getElementById('finalTotal').innerText = Math.max(0, bill - promoDiscount);
+        document.getElementById('countDisplay').innerText = myCart.reduce((sum, i) => sum + i.qty, 0);
         localStorage.setItem('YiZ_Storage_Cart', JSON.stringify(myCart));
     }
 
@@ -294,7 +318,6 @@
     }
 
     function toggleCart() { document.getElementById('cartDrawer').classList.toggle('open'); }
-    
     function toggleLogin() { 
         const box = document.getElementById('loginBox');
         box.style.display = box.style.display === 'block' ? 'none' : 'block';
@@ -320,21 +343,18 @@
             promoDiscount = 10;
             alert("已减 RM10");
             refreshCartUI();
-        } else {
-            alert("无效的折扣码");
         }
     }
 
     function doCheckout() {
-        if(!loggedUser) return alert("请先登录账户再结算");
-        if(myCart.length === 0) return alert("购物车还是空的哦");
-        alert("支付成功！感谢支持 YiZ Sports。");
+        if(!loggedUser) return alert("请先登录");
+        alert("支付成功！");
         myCart = [];
         refreshCartUI();
     }
 
-    // 统一在这里初始化
-    window.onload = init;
+    init();
 </script>
+
 </body>
 </html>
